@@ -1,13 +1,19 @@
 module Main where
 
-import Options.Applicative
-import Data.Semigroup ((<>))
-import Codec.Encryption.OpenPGP.ASCIIArmor.Types
+import           Options.Applicative
+import           Data.Semigroup ((<>))
+import           Codec.Encryption.OpenPGP.ASCIIArmor
+import           Codec.Encryption.OpenPGP.ASCIIArmor.Types
+import qualified Data.Attoparsec.ByteString as AB
+import           Data.ByteString.Char8 as BS8L hiding (putStrLn)
 
 import Lib
 
 instance Read Armor where
   readsPrec = undefined
+
+attoReadM :: AB.Parser a -> ReadM a
+attoReadM p = eitherReader (AB.parseOnly p . BS8L.pack)
 
 data Person = Person
   { name :: String
@@ -19,7 +25,7 @@ person = Person
       ( long "name"
      <> metavar "NAME"
      <> help "Name of the person" )
-  <*> option auto 
+  <*> option (attoReadM parseArmor)
       ( long "armor"
      <> help "The armor ascii" )
 
