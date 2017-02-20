@@ -1,1 +1,7 @@
-# A haskell WIP to play around with PGP and so on.
+# A haskell playground for PGP, crypto and signatures.
+
+## Instructions
+
++ Install stack: ``` curl -sSL https://get.haskellstack.org/ | sh ```
++ `stack install`
++ `kryptonight --file pubkey.asc`
