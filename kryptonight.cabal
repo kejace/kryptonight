@@ -30,6 +30,8 @@ executable kryptonight-exe
                      , openpgp-asciiarmor
                      , optparse-applicative
                      , attoparsec
+                     , hOpenPGP
+                     , text
   default-language:    Haskell2010
 
 test-suite kryptonight-test

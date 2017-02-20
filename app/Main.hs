@@ -1,43 +1,58 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase        #-}
+
 module Main where
 
 import           Options.Applicative
-import           Data.Semigroup ((<>))
+import           Control.Monad
 import           Codec.Encryption.OpenPGP.ASCIIArmor
 import           Codec.Encryption.OpenPGP.ASCIIArmor.Types
-import qualified Data.Attoparsec.ByteString as AB
-import           Data.ByteString.Char8 as BS8L hiding (putStrLn)
+import qualified Data.Attoparsec.ByteString    as AB
+import           Data.ByteString.Char8         as BS8L hiding (putStrLn, concat)
+import           Codec.Encryption.OpenPGP.Serialize
+import           Codec.Encryption.OpenPGP.Types
+import           Data.Text                     as T
 
-import Lib
+import Lib()
 
-instance Read Armor where
-  readsPrec = undefined
+-- instance Read Armor where
+--   readsPrec = undefined
 
 attoReadM :: AB.Parser a -> ReadM a
 attoReadM p = eitherReader (AB.parseOnly p . BS8L.pack)
 
 data Person = Person
-  { name :: String
-  , armor :: Armor}
+  { 
+  file :: String
+  --, armor :: Armor
+  }
 
 person :: Parser Person
 person = Person 
   <$> strOption
-      ( long "name"
-     <> metavar "NAME"
-     <> help "Name of the person" )
-  <*> option (attoReadM parseArmor)
-      ( long "armor"
-     <> help "The armor ascii" )
-
-greet :: Person -> IO ()
-greet (Person name _) = putStrLn $ "Hello, " ++ name
-greet _ = return ()
+      ( long "file"
+     <> metavar "FILE"
+     <> help "Filename for armor" )
+--   <*> option (attoReadM parseArmor)
+--       ( long "armor"
+--      <> help "The armor ascii" )
 
 main :: IO ()
-main = execParser opts >>= greet
-  where
-    opts = info (helper <*> person)
-      ( fullDesc
-     <> progDesc "Print a greeting for NAME"
-     <> header "hello - a test for optparse-applicative" )
-
+main = do
+  personParsed <- execParser opts
+  contents <- BS8L.readFile (file personParsed)
+ 
+  let armorBS = case decode contents of
+        Left e -> error e 
+        Right ((Armor _ _ bs):_) -> bs 
+        Right _ -> error "Couldn't parse"
+  
+  (parsePkts armorBS) `forM_` \case
+      (UserIdPkt u) -> putStrLn . T.unpack $ "PubKey belongs to " <> u 
+      _             -> return ()
+  
+    where
+      opts = info (helper <*> person)
+        ( fullDesc
+       <> progDesc "Print a greeting for NAME"
+       <> header "hello - a test for optparse-applicative" )
